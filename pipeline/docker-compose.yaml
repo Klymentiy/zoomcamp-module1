@@ -1,0 +1,47 @@
+services:
+  pgdatabase:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: "root"
+      POSTGRES_PASSWORD: "root"
+      POSTGRES_DB: "ny_taxi"
+    volumes:
+      - "ny_taxi_postgres_data:/var/lib/postgresql"
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "admin@admin.com"
+      PGADMIN_DEFAULT_PASSWORD: "root"
+    volumes:
+      - "pgadmin_data:/var/lib/pgadmin"
+    ports:
+      - "8085:80"
+    depends_on:
+      - pgdatabase
+
+  ingest_zones:
+    build: . 
+    depends_on:
+      - pgdatabase
+    restart: on-failure 
+    command: >
+      --pg-host=pgdatabase 
+      --target-table=zones 
+      --url="https://github.com/DataTalksClub/nyc-tlc-data/releases/download/misc/taxi_zone_lookup.csv"
+
+  ingest_yellow:
+    build: .
+    depends_on:
+      - pgdatabase
+    restart: on-failure
+    command: >
+      --pg-host=pgdatabase 
+      --target-table=yellow_taxi_trips 
+      --url="https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_2021-01.csv.gz"
+
+volumes:
+  ny_taxi_postgres_data:
+  pgadmin_data:
